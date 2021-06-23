@@ -89,7 +89,7 @@ public:
 // CUT END
 ////////////////////////////
 
-int main()
+int run()
 {
     Solution s;
     return 0;

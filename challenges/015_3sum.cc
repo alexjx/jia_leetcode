@@ -102,7 +102,7 @@ void printVector(vector<int>& v)
     cout << "]\n";
 }
 
-int main()
+int run()
 {
     Solution s;
 #if 0

@@ -27,14 +27,14 @@ public:
     }
 };
 
-int main()
+// TESTS
+#include <gtest/gtest.h>
+
+// Demonstrate some basic assertions.
+TEST(t001, medium)
 {
     Solution s;
+    vector<int> v{1, 2, 3, 4, 5, 6};
 
-    vector<int> nums = {1, 2, 3, 4};
-
-    cout.precision(6);
-    cout << fixed << s.findMedium(nums) << endl;
-
-    return 0;
+    ASSERT_EQ(s.findMedium(v), 3.5);
 }

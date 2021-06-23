@@ -30,8 +30,10 @@ public:
 // CUT END
 ////////////////////////////
 
-int main()
+#include <gtest/gtest.h>
+TEST(txxx, name)
 {
     Solution s;
-    return 0;
+
+    ASSERT_EQ(1, 1);
 }

@@ -78,7 +78,8 @@ const int Solution::lookup[] = {
     9, 19, 29, 39, 49, 59, 69, 79, 89, 99,
 };
 
-int main() {
+int run()
+{
     Solution s;
     std::vector<int> v = { 12345, 1534236469, -123, -12312981, 102, 901000, -2147483648 };
     for (auto a: v) {

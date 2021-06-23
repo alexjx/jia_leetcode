@@ -40,9 +40,3 @@ public:
         return rr;
     }
 };
-
-int main()
-{
-    Solution s;
-    s.twoSum();
-}
