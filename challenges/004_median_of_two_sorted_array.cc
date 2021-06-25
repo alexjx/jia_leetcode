@@ -47,6 +47,11 @@ public:
             return std::distance(first, last);
         }
 
+        iter_t medium()
+        {
+            return first + ((count() - 1) >> 1);
+        }
+
         pair<int, int> offsets()
         {
             return pair(std::distance(nums.begin(), first), std::distance(nums.begin(), last));
@@ -79,6 +84,19 @@ public:
         return min(*left_begin, *right_begin);
     }
 
+    auto choose_starts(tracker_t& tracker1, tracker_t& tracker2)
+    {
+        if (tracker1.count() && !tracker2.count()) {
+            return pair(&tracker1, &tracker2);
+        } else if (!tracker1.count() && tracker2.count()) {
+            return pair(&tracker2, &tracker1);
+        }
+        if (tracker1.front() < tracker2.front()) {
+            return pair(&tracker1, &tracker2);
+        }
+        return pair(&tracker2, &tracker1);
+    };
+
     double findMedianSortedArrays(vector<int>& nums1, vector<int>& nums2)
     {
         auto total = nums1.size() + nums2.size();
@@ -90,7 +108,7 @@ public:
         // target position
         auto target = (total - 1) / 2;
 
-        //  1. choose any vector, find the medium of it.
+        //  1. choose the vector with the smaller first element
         //  2. use the value find in 1, partition the other vector
         //  3. calculate the position of the medium (the number of elements smaller than it)
         //  4. choose the partitions according to the target position value.
@@ -99,42 +117,25 @@ public:
         auto    tracker1    = make_tracker(nums1);
         auto    tracker2    = make_tracker(nums2);
 
-        // medium_of_range get the medium of iterator of the range
-        auto medium_of_range = [](tracker_t* t) {
-            return t->first + ((t->count() - 1) >> 1);
-        };
-
         tracker_t* left  = nullptr;
         tracker_t* right = nullptr;
 
-        auto choose_starts = [&tracker1, &tracker2]() {
-            if (tracker1.count() && !tracker2.count()) {
-                return pair(&tracker1, &tracker2);
-            } else if (!tracker1.count() && tracker2.count()) {
-                return pair(&tracker2, &tracker1);
-            }
-            if (tracker1.front() < tracker2.front()) {
-                return pair(&tracker1, &tracker2);
-            }
-            return pair(&tracker2, &tracker1);
-        };
-
         while (target != start) {
             // find the one with smaller start
-            tie(left, right) = choose_starts();
+            tie(left, right) = choose_starts(tracker1, tracker2);
 
             // the idea is that, we take the medium of the vector with smallest start
             // then, partition the other vector. so the medium we just find will take
             // the index with start + sum of all elements smaller than the medium.
 
             // normal case: overlapping
-            auto pivot1    = medium_of_range(left);
+            auto pivot1    = left->medium();
             int  pivot_idx = left->distance(pivot1) + start;
             // partition other vector
             auto pivot2 = lower_bound(right->first, right->last, *pivot1);
             if (pivot2 == right->last) {
                 // case 1: all right range are less than pivot value
-                pivot_idx += distance(right->first, right->last);
+                pivot_idx += right->count();
             } else {
                 // case 2: we have overlapping vectors
                 pivot_idx += right->distance(pivot2);
@@ -142,7 +143,6 @@ public:
 
             // now we need to check the target and pivot
             if (target == pivot_idx) {
-                // take the greater half
                 left->first  = pivot1;
                 right->first = pivot2;
                 start        = pivot_idx;
@@ -161,7 +161,7 @@ public:
 
         // now we have to calculate the medium value
         // the hard part is to find "next" value if required
-        tie(left, right) = choose_starts();
+        tie(left, right) = choose_starts(tracker1, tracker2);
         double ret       = *left->first;
         if (!is_elem) {
             // this is a merge source case
