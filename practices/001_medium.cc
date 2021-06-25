@@ -31,7 +31,7 @@ public:
 #include <gtest/gtest.h>
 
 // Demonstrate some basic assertions.
-TEST(t001, medium)
+TEST(t_001, medium)
 {
     Solution s;
     vector<int> v{1, 2, 3, 4, 5, 6};

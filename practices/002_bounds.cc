@@ -8,29 +8,31 @@
 
 using namespace std;
 
-class Solution {
-public:
-    int upperBound(vector<int>& nums, int val)
-    {
-        auto it = upper_bound(nums.begin(), nums.end(), val);
-        return distance(nums.begin(), it);
-    }
-
-    int lowerBound(vector<int>& nums, int val)
-    {
-        auto it = lower_bound(nums.begin(), nums.end(), val);
-        return distance(nums.begin(), it);
-    }
-};
-
 #include <gtest/gtest.h>
 
-TEST(t002, bounds)
+TEST(t_002_bounds, 1)
 {
-    Solution s;
     //                   0  1  2  3  4  5
     vector<int> nums = {-1, 0, 0, 0, 0, 1};
 
-    ASSERT_EQ(s.upperBound(nums, 0), 5);
-    ASSERT_EQ(s.lowerBound(nums, 0), 1);  // lower bound is inclusive
+    auto offset = [&nums](vector<int>::iterator it) {
+        return distance(nums.begin(), it);
+    };
+
+    ASSERT_EQ(offset(upper_bound(nums.begin(), nums.end(), 0)), 5);
+    ASSERT_EQ(offset(lower_bound(nums.begin(), nums.end(), 0)), 1);  // lower bound is inclusive
+}
+
+TEST(t_002_bounds, 2)
+{
+    //                     0  1  2  3  4  5
+    vector<int> nums   = {-1, 0, 0, 0, 0, 2};
+    auto        offset = [&nums](vector<int>::iterator it) {
+        return distance(nums.begin(), it);
+    };
+
+    auto it    = lower_bound(nums.begin(), nums.end(), 4);
+    auto lower = offset(it);
+
+    ASSERT_EQ(lower, 1);
 }

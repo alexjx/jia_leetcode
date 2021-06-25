@@ -24,51 +24,153 @@ static auto x = []() {
 
 class Solution {
 public:
+    using iter_t  = vector<int>::iterator;
+    using range_t = tuple<iter_t, iter_t, vector<int>>;
+
+    struct tracker_t {
+        iter_t       first;
+        iter_t       last;
+        vector<int>& nums;
+
+        int front()
+        {
+            return *first;
+        }
+
+        int back()
+        {
+            return *last;
+        }
+
+        int count()
+        {
+            return std::distance(first, last);
+        }
+
+        pair<int, int> offsets()
+        {
+            return pair(std::distance(nums.begin(), first), std::distance(nums.begin(), last));
+        }
+
+        int distance(iter_t i)
+        {
+            return std::distance(first, i);
+        }
+    };
+
+    tracker_t make_tracker(vector<int>& nums)
+    {
+        return tracker_t{nums.begin(), nums.end(), nums};
+    }
+
+    double next_value(tracker_t* left, tracker_t* right)
+    {
+        auto left_begin  = next(left->first);
+        auto left_end    = left->nums.end();
+        auto right_begin = right->first;
+        auto right_end   = right->nums.end();
+
+        if (left_begin == left_end) {
+            return (right_begin == right_end) ? 0.0 : *right_begin;
+        }
+        if (right_begin == right_end) {
+            return *left_begin;
+        }
+        return min(*left_begin, *right_begin);
+    }
+
     double findMedianSortedArrays(vector<int>& nums1, vector<int>& nums2)
     {
         auto total = nums1.size() + nums2.size();
-        if (total == 0) {
-            return 0.0;
-        }
+        assert(total > 0);
 
         // if the total amount is even, so the medium is an element
-        auto has_medium_elem = total % 2 == 1;
+        auto is_elem = total % 2 == 1;
 
         // target position
-        auto target_position = (total - 1) / 2;
+        auto target = (total - 1) / 2;
 
-        // normal case: the two vectors are overlapping
         //  1. choose any vector, find the medium of it.
         //  2. use the value find in 1, partition the other vector
         //  3. calculate the position of the medium (the number of elements smaller than it)
         //  4. choose the partitions according to the target position value.
-        pair<int, int> range(0, total - 1);
-        using iter_t      = vector<int>::iterator;
-        using vec_range_t = pair<iter_t, iter_t>;
-        vec_range_t nums1_range(nums1.begin(), nums1.end());
-        vec_range_t nums2_range(nums2.begin(), nums2.end());
+
+        int     start       = 0;
+        auto    tracker1    = make_tracker(nums1);
+        auto    tracker2    = make_tracker(nums2);
+
         // medium_of_range get the medium of iterator of the range
-        auto medium_of_range = [](vec_range_t& t) {
-            auto half = distance(t.first, t.second) >> 1;
-            return t.first + half;
+        auto medium_of_range = [](tracker_t* t) {
+            return t->first + ((t->count() - 1) >> 1);
         };
-        auto medium_val_of_vec = [has_medium_elem, target_position, &range](vec_range_t& r) -> double {
-            if (has_medium_elem) {
-                return (double)(*(r.first + (target_position - range.first)));
+
+        tracker_t* left  = nullptr;
+        tracker_t* right = nullptr;
+
+        auto choose_starts = [&tracker1, &tracker2]() {
+            if (tracker1.count() && !tracker2.count()) {
+                return pair(&tracker1, &tracker2);
+            } else if (!tracker1.count() && tracker2.count()) {
+                return pair(&tracker2, &tracker1);
             }
-            l = (double)(*(r.first + (range.first - target_position)));
-            r = (double)(*(r.first + (range.first - target_position)));
-            return ((double)nums[target_position] + (double)nums[target_position]) / 2.0;
+            if (tracker1.front() < tracker2.front()) {
+                return pair(&tracker1, &tracker2);
+            }
+            return pair(&tracker2, &tracker1);
         };
-        while (target_position > range.first && target_position < range.second) {
-            // special case: either one is emtpy
-            if (nums1_range.first == nums1_range.second) {
-            } else if (nums2_range.first == nums2_range.second) {
+
+        while (target != start) {
+            // find the one with smaller start
+            tie(left, right) = choose_starts();
+
+            // the idea is that, we take the medium of the vector with smallest start
+            // then, partition the other vector. so the medium we just find will take
+            // the index with start + sum of all elements smaller than the medium.
+
+            // normal case: overlapping
+            auto pivot1    = medium_of_range(left);
+            int  pivot_idx = left->distance(pivot1) + start;
+            // partition other vector
+            auto pivot2 = lower_bound(right->first, right->last, *pivot1);
+            if (pivot2 == right->last) {
+                // case 1: all right range are less than pivot value
+                pivot_idx += distance(right->first, right->last);
+            } else {
+                // case 2: we have overlapping vectors
+                pivot_idx += right->distance(pivot2);
             }
 
-            auto num1_medium_it   = medium_of_range(nums1_range);
-            auto [num2_l, num2_h] = equal_range(nums2_range.first, nums2_range.second, *num1_medium_it);
+            // now we need to check the target and pivot
+            if (target == pivot_idx) {
+                // take the greater half
+                left->first  = pivot1;
+                right->first = pivot2;
+                start        = pivot_idx;
+            } else if (target > pivot_idx) {
+                // take the greater half
+                left->first  = ++pivot1;
+                right->first = pivot2;
+                start        = ++pivot_idx;
+            } else {
+                // take the smaller half
+                left->last  = pivot1;
+                right->last = pivot2;
+                // start will not change;
+            }
         }
+
+        // now we have to calculate the medium value
+        // the hard part is to find "next" value if required
+        tie(left, right) = choose_starts();
+        double ret       = *left->first;
+        if (!is_elem) {
+            // this is a merge source case
+            // choosing the next value from both left and right
+            ret += next_value(left, right);
+            ret /= 2;
+        }
+
+        return ret;
     }
 };
 
@@ -76,13 +178,93 @@ public:
 // CUT END
 ////////////////////////////
 
-int run()
+#include <gtest/gtest.h>
+TEST(c_004_medium_of_two_sorted_array, 1)
 {
     Solution    s;
-    vector<int> num1 = {0, 0, 0, 0, 0};
-    vector<int> num2 = {-1, 0, 0, 0, 0, 0, 1};
+    vector<int> nums1 = {2};
+    vector<int> nums2 = {1, 3};
 
-    cout.precision(6);
-    cout << fixed << s.findMedianSortedArrays(num1, num2) << endl;
-    return 0;
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 2.0);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 2)
+{
+    Solution    s;
+    vector<int> nums1 = {-1, 0, 0, 0, 0, 0, 1};
+    vector<int> nums2 = {0, 0, 0, 0, 0};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 0.0);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 3)
+{
+    Solution    s;
+    vector<int> nums1 = {1, 2};
+    vector<int> nums2 = {3, 4};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 2.5);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 4)
+{
+    Solution    s;
+    vector<int> nums1 = {0, 0};
+    vector<int> nums2 = {0, 0};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 0);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 5)
+{
+    Solution    s;
+    vector<int> nums1 = {};
+    vector<int> nums2 = {1};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 1);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 6)
+{
+    Solution    s;
+    vector<int> nums1 = {1};
+    vector<int> nums2 = {};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 1);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 7)
+{
+    Solution    s;
+    vector<int> nums1 = {};
+    vector<int> nums2 = {1, 2, 3, 4};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 2.5);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 8)
+{
+    Solution    s;
+    vector<int> nums1 = {0, 0, 0, 0, 0};
+    vector<int> nums2 = {-1, 0, 0, 0, 0, 0, 1};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 0);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 9)
+{
+    Solution    s;
+    vector<int> nums1 = {2};
+    vector<int> nums2 = {1, 3, 4};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 2.5);
+}
+
+TEST(c_004_medium_of_two_sorted_array, 10)
+{
+    Solution    s;
+    vector<int> nums1 = {2, 2, 4, 4};
+    vector<int> nums2 = {2, 2, 4, 4};
+
+    ASSERT_EQ(s.findMedianSortedArrays(nums1, nums2), 3);
 }
